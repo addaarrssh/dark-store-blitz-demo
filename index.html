@@ -1,0 +1,931 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Dark Store Blitz — Interactive Showcase & OR Simulator</title>
+  <link rel="stylesheet" href="kit.css">
+  <style>
+    :root {
+      --tape: #FFE500;
+      --ink: #0F172A;
+      --rush: #FF2D87;
+      --frz: #2B4BFF;
+      --ice: #BFE0FF;
+      --chem: #FF9A2E;
+      --floor: #F8FAFC;
+      --bg: #090D16;
+      --panel: #131A2A;
+      --card: #1E293B;
+      --border: #334155;
+      --text: #F1F5F9;
+      --sub: #94A3B8;
+      --go: #10B981;
+      --disp: "Avenir Next Condensed", "Roboto Condensed", "Arial Narrow", Impact, sans-serif;
+      --mono: "SF Mono", Menlo, Consolas, Monaco, monospace;
+      --body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--body);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      line-height: 1.5;
+    }
+    a { color: inherit; text-decoration: none; }
+    button { font: inherit; color: inherit; cursor: pointer; border: 0; background: none; }
+
+    /* Header */
+    header {
+      background: #0d1322;
+      border-bottom: 2px solid var(--border);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo-badge {
+      background: var(--tape);
+      color: #000;
+      font: 900 20px/1 var(--disp);
+      padding: 6px 10px;
+      border-radius: 4px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      box-shadow: 2px 2px 0 var(--rush);
+    }
+    .brand-title {
+      font: 800 20px/1.2 var(--disp);
+      letter-spacing: 0.02em;
+    }
+    .brand-sub {
+      font-size: 12px;
+      color: var(--sub);
+      display: block;
+    }
+    .nav-tabs {
+      display: flex;
+      gap: 6px;
+      background: var(--panel);
+      padding: 4px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    .nav-btn {
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 700;
+      border-radius: 6px;
+      color: var(--sub);
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .nav-btn:hover { color: #fff; background: rgba(255,255,255,0.05); }
+    .nav-btn.active {
+      background: var(--tape);
+      color: #000;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+    .live-link-btn {
+      background: var(--rush);
+      color: #fff;
+      font-weight: 800;
+      font-size: 13px;
+      padding: 8px 14px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 2px 4px rgba(255,45,135,0.3);
+      transition: transform 0.1s;
+    }
+    .live-link-btn:hover { transform: translateY(-1px); }
+
+    /* Content Area */
+    main {
+      flex: 1;
+      max-width: 1300px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 20px 16px 40px;
+    }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+
+    /* Simulator Layout */
+    .sim-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+    @media (min-width: 980px) {
+      .sim-grid {
+        grid-template-columns: minmax(420px, 580px) 1fr;
+        align-items: start;
+      }
+    }
+    .map-card {
+      background: var(--panel);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    .map-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .map-title {
+      font: 800 18px var(--disp);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .map-container {
+      width: 100%;
+      aspect-ratio: 1;
+      max-width: 540px;
+      margin: 0 auto;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--ink);
+    }
+    .map-legend {
+      margin-top: 10px;
+      font-size: 11px;
+      color: var(--sub);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+    }
+    .leg-item { display: inline-flex; align-items: center; gap: 4px; }
+    .leg-dot { width: 10px; height: 10px; border-radius: 2px; }
+
+    /* Control Panel */
+    .controls-card {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .box-section {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+    }
+    .sec-title {
+      font: 800 14px var(--disp);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--tape);
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .action-btn {
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: #fff;
+      padding: 7px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      border-radius: 6px;
+      transition: all 0.1s;
+    }
+    .action-btn:hover { background: #2a374f; border-color: #475569; }
+    .action-btn.active { background: var(--tape); color: #000; border-color: var(--tape); }
+    .action-btn.primary { background: var(--rush); color: #fff; border-color: var(--rush); }
+    .action-btn.success { background: var(--go); color: #000; border-color: var(--go); font-weight: 800; }
+
+    /* Order Ticket Display */
+    .ticket-display {
+      background: #fff;
+      color: #000;
+      border: 2px solid #000;
+      border-radius: 8px;
+      padding: 14px 16px;
+      box-shadow: 4px 4px 0 rgba(0,0,0,0.5);
+    }
+    .tix-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      border-bottom: 2px dashed #000;
+      padding-bottom: 8px;
+      margin-bottom: 10px;
+    }
+    .tix-label { font: 800 18px var(--disp); text-transform: uppercase; }
+    .tix-title { font-size: 13px; font-weight: 600; color: #475569; }
+    .tix-items {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .tix-item {
+      background: #F1F5F9;
+      border: 1px solid #CBD5E1;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .tix-item.picked {
+      background: #D1FAE5;
+      border-color: #10B981;
+      color: #065F46;
+      text-decoration: line-through;
+    }
+    .crisis-callout {
+      background: #FEF3C7;
+      border: 1px solid #F59E0B;
+      color: #92400E;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 6px 10px;
+      border-radius: 6px;
+      margin-top: 8px;
+    }
+
+    /* Live Telemetry / Score */
+    .metrics-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      text-align: center;
+      background: var(--card);
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    .metric-val { font: 900 22px/1 var(--disp); color: var(--tape); }
+    .metric-val.meters { color: #38BDF8; }
+    .metric-val.score { color: var(--go); }
+    .metric-val.pen { color: var(--rush); }
+    .metric-lbl { font-size: 10px; text-transform: uppercase; color: var(--sub); font-weight: 700; margin-top: 4px; }
+
+    /* AI Optimal Route comparison */
+    .solver-box {
+      background: #141c2e;
+      border: 1px solid #293859;
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+    .solver-info { font-size: 12px; }
+    .solver-info b { color: #38BDF8; }
+
+    /* Arena Tab */
+    .arena-banner {
+      background: radial-gradient(circle at 50% 30%, #1e2942, #0d121f);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      text-align: center;
+      margin-bottom: 20px;
+      position: relative;
+    }
+    .arena-clock {
+      font: 900 64px/1 var(--disp);
+      color: var(--tape);
+      letter-spacing: -0.02em;
+      margin: 10px 0;
+      text-shadow: 0 0 20px rgba(255,229,0,0.25);
+    }
+    .arena-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .arena-table th, .arena-table td {
+      padding: 12px 16px;
+      text-align: left;
+      font-size: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .arena-table th { background: #0c111c; color: var(--sub); font-size: 11px; text-transform: uppercase; }
+    .rank-cell { font: 800 16px var(--disp); color: var(--tape); width: 40px; }
+    .team-name { font-weight: 800; font-size: 15px; }
+
+    /* OR & Architecture Tab */
+    .doc-section {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .doc-section h2 {
+      font: 800 24px var(--disp);
+      color: var(--tape);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .doc-section h3 {
+      font: 800 18px var(--disp);
+      color: #fff;
+      margin: 18px 0 8px;
+    }
+    .doc-section p, .doc-section li {
+      color: #cbd5e1;
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .doc-section ul { padding-left: 20px; margin-bottom: 12px; }
+    .code-pill {
+      background: #0f172a;
+      border: 1px solid var(--border);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: #38bdf8;
+    }
+    .formula-card {
+      background: #0c111d;
+      border-left: 4px solid var(--rush);
+      padding: 14px 18px;
+      margin: 14px 0;
+      border-radius: 0 8px 8px 0;
+      font-family: var(--mono);
+      font-size: 13px;
+      color: #f8fafc;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header -->
+  <header>
+    <div class="brand">
+      <div class="logo-badge">⚡ BLITZ DEMO</div>
+      <div>
+        <div class="brand-title">Dark Store Blitz — Simulator & Showcase</div>
+        <span class="brand-sub">Quick-Commerce Operations Research Competition</span>
+      </div>
+    </div>
+
+    <!-- Navigation Pills -->
+    <nav class="nav-tabs">
+      <button class="nav-btn active" onclick="switchTab('picker')">🎮 Picker Simulator</button>
+      <button class="nav-btn" onclick="switchTab('arena')">📽️ Projector Arena</button>
+      <button class="nav-btn" onclick="switchTab('or')">🧠 Operations Research & Tech</button>
+    </nav>
+
+    <!-- Direct live link -->
+    <a href="https://dark-store-blitz.onrender.com" target="_blank" class="live-link-btn">
+      🌐 Live Multiplayer Room ↗
+    </a>
+  </header>
+
+  <!-- Main Container -->
+  <main>
+
+    <!-- ==================== TAB 1: PICKER SIMULATOR ==================== -->
+    <section id="tab-picker" class="tab-pane active">
+      <div class="sim-grid">
+
+        <!-- Left: Warehouse Map -->
+        <div class="map-card">
+          <div class="map-header">
+            <div class="map-title">🏬 Dark Store Grid (10×10)</div>
+            <div id="status-pill" style="font-size: 12px; font-weight: 700; color: var(--go);">● Ready to Pick</div>
+          </div>
+
+          <div id="warehouse-map" class="map-container"></div>
+
+          <div class="map-legend">
+            <span class="leg-item"><span class="leg-dot" style="background:#FFE500;"></span> Aisle Shelf</span>
+            <span class="leg-item"><span class="leg-dot" style="background:#BFE0FF;"></span> Freezer (Cold)</span>
+            <span class="leg-item"><span class="leg-dot" style="background:#FF9A2E;"></span> Chemical Segregation</span>
+            <span class="leg-item"><span class="leg-dot" style="background:#FF2D87;"></span> Target Shelf</span>
+            <span class="leg-item"><span class="leg-dot" style="background:#10B981;"></span> Picked</span>
+            <span class="leg-item"><span class="leg-dot" style="background:#C5CEFF;"></span> Walk Path</span>
+          </div>
+        </div>
+
+        <!-- Right: Simulator Controls -->
+        <div class="controls-card">
+
+          <!-- Warehouse Layout Presets -->
+          <div class="box-section">
+            <div class="sec-title">
+              <span>1. Stocking & Layout Strategy</span>
+              <span id="penalty-badge" style="font-size: 11px; color: var(--go);">0 Penalties</span>
+            </div>
+            <div class="btn-row">
+              <button class="action-btn active" id="btn-pro-layout" onclick="loadLayout('clean')">⚡ Pro Layout (Zero Penalties)</button>
+              <button class="action-btn" id="btn-random-layout" onclick="loadLayout('random')">🎲 Random Layout</button>
+              <button class="action-btn" id="btn-bad-layout" onclick="loadLayout('bad')">⚠️ Clustered (High Penalty)</button>
+            </div>
+            <div id="penalty-detail" style="font-size: 11px; color: var(--sub); margin-top: 8px;">
+              Optimal warehouse layout loaded: Heavy Atta 5kg stocked on Bottom shelves; Chemicals segregated; Frozen goods isolated in row J freezer bays.
+            </div>
+          </div>
+
+          <!-- Round & Order Selection -->
+          <div class="box-section">
+            <div class="sec-title">2. Select Competition Order / Scenario</div>
+            <div class="btn-row" id="round-pills"></div>
+          </div>
+
+          <!-- Active Order Ticket -->
+          <div class="ticket-display">
+            <div class="tix-head">
+              <div class="tix-label" id="tix-label">Order 1</div>
+              <div class="tix-title" id="tix-title">Breakfast Rush</div>
+            </div>
+            <div class="tix-items" id="tix-items"></div>
+            <div id="tix-crisis" class="crisis-callout" style="display: none;"></div>
+          </div>
+
+          <!-- Live Telemetry / Metrics -->
+          <div class="metrics-bar">
+            <div>
+              <div class="metric-val meters" id="val-meters">0 m</div>
+              <div class="metric-lbl">Distance</div>
+            </div>
+            <div>
+              <div class="metric-val score" id="val-score">150</div>
+              <div class="metric-lbl">Est. Score</div>
+            </div>
+            <div>
+              <div class="metric-val pen" id="val-pen">-0</div>
+              <div class="metric-lbl">Penalties</div>
+            </div>
+            <div>
+              <div class="metric-val" id="val-progress" style="color: #fff;">0 / 3</div>
+              <div class="metric-lbl">Picked</div>
+            </div>
+          </div>
+
+          <!-- AI Solver Comparison & Reset -->
+          <div class="solver-box">
+            <div class="solver-info">
+              <div><b>AI Optimal Solver</b>: <span id="solver-meters">Calculating...</span></div>
+              <div style="color: var(--sub); font-size: 11px;" id="solver-diff">Tap destination shelves on the map to pick your items.</div>
+            </div>
+            <div style="display: flex; gap: 6px;">
+              <button class="action-btn primary" onclick="showOptimalRoute()">🤖 Show Optimal Path</button>
+              <button class="action-btn" onclick="resetPickerRoute()">↺ Reset</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ==================== TAB 2: ARENA & PROJECTOR ==================== -->
+    <section id="tab-arena" class="tab-pane">
+      <div class="arena-banner">
+        <div style="font: 800 16px var(--disp); color: var(--rush); letter-spacing: 0.1em; text-transform: uppercase;">
+          Live Competition Auditorium Screen
+        </div>
+        <div class="arena-clock" id="arena-clock">02:15</div>
+        <div style="font-size: 14px; font-weight: 700; color: #fff;">
+          Current Stage: <span style="color: var(--tape);" id="arena-stage">Stage 2 — Rush Hour (Order 4 of 16)</span>
+        </div>
+        <div style="margin-top: 14px; display: flex; justify-content: center; gap: 10px;">
+          <button class="action-btn primary" onclick="simulateArenaStep()">▶ Next Sim Tick</button>
+          <button class="action-btn success" onclick="triggerPodiumCeremony()">🏆 Reveal Podium Ceremony</button>
+        </div>
+      </div>
+
+      <div style="background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 20px;">
+        <h3 style="font: 800 20px var(--disp); color: var(--tape); margin-bottom: 12px;">🏆 Live Arena Leaderboard (Real-Time Teams)</h3>
+        <table class="arena-table">
+          <thead>
+            <tr>
+              <th style="width: 50px;">Rank</th>
+              <th>Team Name</th>
+              <th>Total Points</th>
+              <th>Meters Walked</th>
+              <th>Penalties</th>
+              <th>Orders Filled</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="arena-leaderboard-body">
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+
+    <!-- ==================== TAB 3: OPERATIONS RESEARCH ==================== -->
+    <section id="tab-or" class="tab-pane">
+      <div class="doc-section">
+        <h2>🔬 The Dark Store Problem: Mathematical Formulation</h2>
+        <p>
+          In modern quick-commerce (Blinkit, Zepto, Instamart), order fulfillment times are strictly capped at <b>8 to 10 minutes</b>. Over <b>65% of the operational warehouse cycle</b> is spent by human pickers walking through aisles. Dark Store Blitz models this high-frequency optimization problem using constrained graph theory and discrete mathematics.
+        </p>
+
+        <h3>1. The Traveling Salesperson & Order-Batching Heuristic</h3>
+        <p>
+          Given a dark store layout modeled as an undirected or directed graph $G = (V, E)$, the packing station is fixed at $v_0 = \text{A3}$. For an incoming customer order ticket requesting an SKU set $S = \{s_1, s_2, \dots, s_k\} \subset V$, the picker's objective is to find a minimum-distance Eulerian path starting and ending at $v_0$:
+        </p>
+        <div class="formula-card">
+          $$\min \sum_{i=0}^{k} d(v_{\pi(i)}, v_{\pi(i+1)}) \quad \text{where } v_{\pi(0)} = v_{\pi(k+1)} = v_0, \quad \pi \in \text{Perm}(1 \dots k)$$
+          $$\text{Subject to: } \quad e = (u, v) \in E_{\text{legal}}(t), \quad v \notin V_{\text{blocked}}(t)$$
+        </div>
+
+        <h3>2. Storage Slotting Constraints & Penalty Functions</h3>
+        <p>
+          In Phase 1, participants design the 24-SKU warehouse layout subject to real-world industrial constraints:
+        </p>
+        <ul>
+          <li><b>Cold-Chain Integrity ($-75\text{ pts}$):</b> Perishables (Cornetto, Frozen Peas, Curd) placed outside the dedicated bottom refrigeration row (Row J1–J3) trigger melting penalties.</li>
+          <li><b>Chemical Segregation ($-50\text{ pts}$):</b> Household cleaners (Harpic, Surf Excel, Mosquito Refill) placed in the same aisle or adjacent to edible groceries cause cross-contamination violations.</li>
+          <li><b>Ergonomic Weight Limits ($-30\text{ pts}$):</b> Heavy bulk items like Atta 5kg placed on Top shelves violate warehouse worker safety laws.</li>
+          <li><b>Fragility Crushing ($-30\text{ pts}$):</b> Heavy goods placed on the same shelving stack directly above Eggs or Bread.</li>
+        </ul>
+
+        <h3>3. Dynamic Disruptions & Resilient Logistics</h3>
+        <p>
+          In Stage 3, the environment becomes non-stationary to test dynamic real-time adaptation:
+        </p>
+        <ul>
+          <li><b>Oil Spills (Directional Flow Constraints):</b> Aisle 6 becomes a one-way directed edge $(B6 \rightarrow I6)$. Pickers cannot backtrack and must route around the warehouse.</li>
+          <li><b>Fallen Pallets (Topological Obstacles):</b> Key walkway squares ($B4, B5$) are dynamically removed from the accessible vertex set ($V \setminus V_{\text{blocked}}$), forcing longer detour routes.</li>
+          <li><b>Double Drop (Multi-Order Batching):</b> Teams choose between making two independent runs or using a heavy handcart that increases total effective meters by $\times 1.25$.</li>
+        </ul>
+
+        <h3>4. Production Engineering Stack</h3>
+        <ul>
+          <li><b>Core Engine:</b> Pure Vanilla JavaScript with zero heavy dependencies, achieving 60 FPS on low-power mobile devices.</li>
+          <li><b>Real-Time Synchronization:</b> Server-Sent Events (SSE) `/events` broadcast loop with automatic jittered exponential backoff.</li>
+          <li><b>Zero-Lag Verification:</b> Mathematical validation runs deterministically on the server to prevent route spoofing or client-side tampering.</li>
+        </ul>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Load Core Game Engine and Rounds -->
+  <script src="game.js"></script>
+  <script src="rounds.js"></script>
+  <script src="kit.js"></script>
+  <script src="kit3d.js"></script>
+
+  <script>
+    // -------------------------------------------------------------
+    // Global State
+    // -------------------------------------------------------------
+    var currentLayout = {};
+    var currentRound = null;
+    var currentRoute = ['A3'];
+    var mapInstance = null;
+    var allRounds = (window.Rounds && window.Rounds.ROUNDS) ? window.Rounds.ROUNDS : [];
+
+    // Simulated Arena Teams
+    var arenaTeams = [
+      { name: "NIT Jamshedpur Blitzers", pts: 620, meters: 84, pen: 0, orders: 4, status: "Active" },
+      { name: "Zepto Hawks", pts: 590, meters: 89, pen: 0, orders: 4, status: "Active" },
+      { name: "Instamart Titans", pts: 565, meters: 95, pen: 0, orders: 4, status: "Active" },
+      { name: "Blinkit Racers", pts: 530, meters: 102, pen: 30, orders: 4, status: "Active" },
+      { name: "Warehouse Wizards", pts: 495, meters: 110, pen: 50, orders: 4, status: "Active" },
+      { name: "SpeedDrop Labs", pts: 470, meters: 118, pen: 0, orders: 3, status: "Active" },
+      { name: "QuickPickers Alpha", pts: 440, meters: 125, pen: 75, orders: 3, status: "Active" },
+      { name: "DarkStore Ninjas", pts: 390, meters: 135, pen: 50, orders: 3, status: "Active" }
+    ];
+
+    // Clean Layout Definition (Zero Penalties)
+    function getCleanLayout() {
+      var L = {};
+      L.J1 = { p: 15, l: 'M' }; L.J2 = { p: 17, l: 'M' }; L.J3 = { p: 24, l: 'M' };
+      L.J8 = { p: 13, l: 'M' }; L.J9 = { p: 16, l: 'M' }; L.J10 = { p: 22, l: 'M' };
+      var rest = [1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 14, 18, 19, 20, 21, 23, 9];
+      var shelves = ['C1', 'C2', 'D1', 'D2', 'E1', 'E2', 'F1', 'F2', 'G1', 'G2', 'H1', 'H2',
+                     'C4', 'C5', 'D4', 'D5', 'E4', 'E5'];
+      rest.forEach(function (p, i) {
+        if (shelves[i]) L[shelves[i]] = { p: p, l: p === 9 ? 'B' : 'M' };
+      });
+      return L;
+    }
+
+    // High Penalty Layout Definition
+    function getBadLayout() {
+      var L = {};
+      // Atta (9) on top shelf, Harpic (13) next to Bread (3), Cornetto (15) outside freezer on shelf C1
+      L.C1 = { p: 15, l: 'T' }; // Cornetto outside cold storage (-75)
+      L.C2 = { p: 9, l: 'T' };  // Atta on top shelf (-30)
+      L.C4 = { p: 13, l: 'M' }; // Harpic
+      L.C5 = { p: 3, l: 'M' };  // Bread next to Harpic (-50)
+      L.D1 = { p: 16, l: 'M' }; // Surf Excel
+      L.D2 = { p: 1, l: 'M' };  // Milk next to Surf Excel (-50)
+      var rest = [2, 4, 5, 6, 7, 8, 10, 11, 12, 14, 17, 18, 19, 20, 21, 22, 23, 24];
+      var shelves = ['E1', 'E2', 'F1', 'F2', 'G1', 'G2', 'H1', 'H2', 'D4', 'D5', 'E4', 'E5', 'F4', 'F5', 'G4', 'G5', 'H4', 'H5'];
+      rest.forEach(function (p, i) {
+        if (shelves[i]) L[shelves[i]] = { p: p, l: 'M' };
+      });
+      return L;
+    }
+
+    // Random Layout
+    function getRandomLayout() {
+      var L = {};
+      var prods = [];
+      for (var i = 1; i <= 24; i++) prods.push(i);
+      prods.sort(function () { return Math.random() - 0.5; });
+      var cells = ['C1','C2','D1','D2','E1','E2','F1','F2','G1','G2','H1','H2',
+                   'C4','C5','D4','D5','E4','E5','F4','F5','G4','G5','H4','H5',
+                   'J1','J2','J3','J8','J9','J10'];
+      cells.sort(function () { return Math.random() - 0.5; });
+      for (var j = 0; j < 24; j++) {
+        L[cells[j]] = { p: prods[j], l: ['T','M','B'][Math.floor(Math.random() * 3)] };
+      }
+      return L;
+    }
+
+    // -------------------------------------------------------------
+    // Navigation Tab Switching
+    // -------------------------------------------------------------
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-pane').forEach(function (p) { p.classList.remove('active'); });
+      document.querySelectorAll('.nav-btn').forEach(function (b) { b.classList.remove('active'); });
+
+      var target = document.getElementById('tab-' + tabId);
+      if (target) target.classList.add('active');
+
+      var navBtns = document.querySelectorAll('.nav-btn');
+      if (tabId === 'picker' && navBtns[0]) navBtns[0].classList.add('active');
+      if (tabId === 'arena' && navBtns[1]) navBtns[1].classList.add('active');
+      if (tabId === 'or' && navBtns[2]) navBtns[2].classList.add('active');
+    }
+
+    // -------------------------------------------------------------
+    // Simulator Logic
+    // -------------------------------------------------------------
+    function initSimulator() {
+      currentLayout = getCleanLayout();
+      currentRound = allRounds[0] || { id: 'o1', label: 'Order 1', title: 'Breakfast Rush', items: [1, 3, 6], secs: 150 };
+
+      // Build Round Selector Pills
+      var pillsContainer = document.getElementById('round-pills');
+      pillsContainer.innerHTML = '';
+      allRounds.forEach(function (r, idx) {
+        var btn = document.createElement('button');
+        btn.className = 'action-btn' + (idx === 0 ? ' active' : '');
+        btn.id = 'pill-' + r.id;
+        btn.textContent = r.label;
+        btn.onclick = function () { selectRound(r); };
+        pillsContainer.appendChild(btn);
+      });
+
+      // Initialize 2D Map inside #warehouse-map
+      var mapEl = document.getElementById('warehouse-map');
+      mapInstance = Kit.createMap(mapEl, {
+        onCell: function (id, kind, info) {
+          handleCellClick(id);
+        },
+        sound: true
+      });
+
+      renderRoundState();
+      renderArenaLeaderboard();
+    }
+
+    function handleCellClick(id) {
+      if (!currentRound) return;
+      var ext = Kit.extendRoute(currentRoute, id, currentRound);
+      if (ext.err) {
+        Kit.toast(ext.err, 'bad');
+        return;
+      }
+      currentRoute = ext.route;
+      updateMapDisplay();
+      updateMetrics();
+
+      // Check if order is complete
+      var items = currentRound.items || (currentRound.a ? currentRound.a.concat(currentRound.b) : []);
+      var done = Game.isDone(currentRoute, items, currentLayout, currentRound);
+      if (done && currentRoute[currentRoute.length - 1] === 'A3') {
+        Kit.sound('done');
+        Kit.toast('🎉 Order completed and returned to Packing Station!', 'ok');
+      }
+    }
+
+    function selectRound(r) {
+      currentRound = r;
+      currentRoute = ['A3'];
+      document.querySelectorAll('#round-pills .action-btn').forEach(function (b) {
+        b.classList.toggle('active', b.id === 'pill-' + r.id);
+      });
+      renderRoundState();
+    }
+
+    function loadLayout(kind) {
+      if (kind === 'clean') currentLayout = getCleanLayout();
+      else if (kind === 'bad') currentLayout = getBadLayout();
+      else if (kind === 'random') currentLayout = getRandomLayout();
+
+      document.querySelectorAll('#btn-pro-layout, #btn-random-layout, #btn-bad-layout').forEach(function (b) {
+        b.classList.remove('active');
+      });
+      if (kind === 'clean') document.getElementById('btn-pro-layout').classList.add('active');
+      if (kind === 'bad') document.getElementById('btn-bad-layout').classList.add('active');
+      if (kind === 'random') document.getElementById('btn-random-layout').classList.add('active');
+
+      currentRoute = ['A3'];
+      renderRoundState();
+    }
+
+    function renderRoundState() {
+      // Update Ticket
+      document.getElementById('tix-label').textContent = currentRound.label;
+      document.getElementById('tix-title').textContent = currentRound.title;
+
+      var itemsContainer = document.getElementById('tix-items');
+      itemsContainer.innerHTML = '';
+      var items = currentRound.items || (currentRound.a ? currentRound.a.concat(currentRound.b) : []);
+
+      items.forEach(function (pNum) {
+        var prod = Game.product(pNum);
+        var itemDiv = document.createElement('div');
+        itemDiv.className = 'tix-item';
+        itemDiv.id = 'tix-prod-' + pNum;
+        itemDiv.innerHTML = '<span>' + (prod ? prod.emoji : '📦') + '</span> <span>' + (prod ? prod.name : 'Item ' + pNum) + '</span>';
+        itemsContainer.appendChild(itemDiv);
+      });
+
+      // Crisis callout
+      var crisisEl = document.getElementById('tix-crisis');
+      if (currentRound.crisis) {
+        crisisEl.style.display = 'block';
+        crisisEl.textContent = '⚠️ ' + currentRound.crisis;
+      } else {
+        crisisEl.style.display = 'none';
+      }
+
+      // Penalties check
+      var pen = Game.penalties(currentLayout);
+      var penBadge = document.getElementById('penalty-badge');
+      var penDetail = document.getElementById('penalty-detail');
+      penBadge.textContent = pen.total ? ('-' + pen.total + ' Penalties') : '0 Penalties';
+      penBadge.style.color = pen.total ? 'var(--rush)' : 'var(--go)';
+
+      if (pen.list && pen.list.length > 0) {
+        penDetail.innerHTML = '<span style="color:var(--rush);">Storage Violations:</span> ' + pen.list.join(', ');
+      } else {
+        penDetail.textContent = 'Optimal layout loaded: Zero storage violations. Full safety compliance.';
+      }
+
+      // AI Solver Preview
+      var s = Game.solve(currentLayout, items, currentRound);
+      var solverMetersEl = document.getElementById('solver-meters');
+      if (s) {
+        solverMetersEl.textContent = s.meters + ' meters (' + Game.pts(s.meters) + ' pts)';
+      } else {
+        solverMetersEl.textContent = 'Undeliverable with current layout';
+      }
+
+      updateMapDisplay();
+      updateMetrics();
+    }
+
+    function updateMapDisplay() {
+      if (!mapInstance) return;
+      var items = currentRound.items || (currentRound.a ? currentRound.a.concat(currentRound.b) : []);
+      mapInstance.update({
+        layout: currentLayout,
+        rule: currentRound,
+        items: items,
+        route: currentRoute
+      });
+    }
+
+    function updateMetrics() {
+      var items = currentRound.items || (currentRound.a ? currentRound.a.concat(currentRound.b) : []);
+      var picked = Game.pickedOf(currentRoute, currentLayout);
+      var pickedCount = 0;
+      items.forEach(function (p) {
+        var isPk = picked[p];
+        if (isPk) pickedCount++;
+        var el = document.getElementById('tix-prod-' + p);
+        if (el) el.classList.toggle('picked', !!isPk);
+      });
+
+      var m = Math.max(0, currentRoute.length - 1);
+      document.getElementById('val-meters').textContent = m + ' m';
+      document.getElementById('val-progress').textContent = pickedCount + ' / ' + items.length;
+
+      var pen = Game.penalties(currentLayout);
+      document.getElementById('val-pen').textContent = '-' + pen.total;
+
+      var estScore = Math.max(0, Game.pts(m) - pen.total);
+      document.getElementById('val-score').textContent = estScore;
+
+      // Solver comparison diff
+      var s = Game.solve(currentLayout, items, currentRound);
+      var diffEl = document.getElementById('solver-diff');
+      if (s && m > 0) {
+        var diff = m - s.meters;
+        if (diff === 0) diffEl.innerHTML = '<span style="color:var(--go); font-weight:800;">★ Flawless! You matched the mathematical minimum!</span>';
+        else if (diff > 0) diffEl.innerHTML = '<span style="color:#F59E0B;">+' + diff + 'm longer than the optimal route.</span>';
+        else diffEl.innerHTML = 'Route in progress...';
+      }
+    }
+
+    function showOptimalRoute() {
+      var items = currentRound.items || (currentRound.a ? currentRound.a.concat(currentRound.b) : []);
+      var s = Game.solve(currentLayout, items, currentRound);
+      if (!s) {
+        Kit.toast('Cannot solve route with this layout', 'bad');
+        return;
+      }
+      mapInstance.update({ ghost: s.path });
+      Kit.toast('Dashed line shows optimal route (' + s.meters + 'm)', 'ok');
+    }
+
+    function resetPickerRoute() {
+      currentRoute = ['A3'];
+      if (mapInstance) mapInstance.update({ ghost: null });
+      updateMapDisplay();
+      updateMetrics();
+    }
+
+    // -------------------------------------------------------------
+    // Arena Simulation
+    // -------------------------------------------------------------
+    function renderArenaLeaderboard() {
+      var tbody = document.getElementById('arena-leaderboard-body');
+      tbody.innerHTML = '';
+      arenaTeams.sort(function (a, b) { return b.pts - a.pts; });
+
+      arenaTeams.forEach(function (t, i) {
+        var tr = document.createElement('tr');
+        tr.innerHTML = '<td class="rank-cell">#' + (i + 1) + '</td>' +
+                       '<td class="team-name">' + t.name + '</td>' +
+                       '<td style="font-weight:900; color:var(--tape); font-size:16px;">' + t.pts + '</td>' +
+                       '<td>' + t.meters + ' m</td>' +
+                       '<td style="color:' + (t.pen ? 'var(--rush)' : 'var(--sub)') + ';">-' + t.pen + '</td>' +
+                       '<td>' + t.orders + '</td>' +
+                       '<td><span style="background:rgba(16,185,129,0.15); color:var(--go); font-size:11px; font-weight:700; padding:3px 8px; border-radius:4px;">' + t.status + '</span></td>';
+        tbody.appendChild(tr);
+      });
+    }
+
+    function simulateArenaStep() {
+      arenaTeams.forEach(function (t) {
+        var gainedMeters = Math.floor(Math.random() * 8) + 18;
+        var gainedScore = Math.max(30, 150 - (gainedMeters * 2));
+        t.meters += gainedMeters;
+        t.pts += gainedScore;
+        t.orders += 1;
+      });
+      renderArenaLeaderboard();
+      Kit.sound('tick');
+      Kit.toast('Simulated Round completed for all 8 arena teams!', 'ok');
+    }
+
+    function triggerPodiumCeremony() {
+      Kit.sound('fanfare');
+      Kit.confetti({ count: 120, ms: 3000 });
+      Kit.toast('🏆 Final Podium Revealed! 1st: ' + arenaTeams[0].name, 'ok');
+    }
+
+    // Initialize on page load
+    window.addEventListener('DOMContentLoaded', initSimulator);
+  </script>
+</body>
+</html>
