@@ -475,7 +475,7 @@
       '<span><i class="lg-cold"></i>Cold zone</span><span><i class="lg-chem"></i>Chemical zone</span><span><i class="lg-closed"></i>Closed</span></div>';
   }
   function tagHtml(p) {
-    return p && p.tag ? '<span class="tag t-' + esc(String(p.tag).toLowerCase()) + '">' + esc(p.tag) + '</span>' : '';
+    return '';
   }
 
   // ------------------------------------------------------------------ tap-to-walk
